@@ -1,40 +1,69 @@
-require('dotenv').config()
-const express = require('express')
-const app = express()
+require("dotenv").config();
+const express = require("express");
+const app = express();
 
-const cors = require('cors');
+const cors = require("cors");
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion } = require("mongodb");
 
 app.use(cors());
-app.use(express())
+app.use(express());
 
-const port = 5000
+const port = 5000;
 
-
-
-
-
-const uri = process.env.MONGODB_URI ;
-
+const uri = process.env.MONGODB_URI;
 
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 
 async function run() {
   try {
-   
     await client.connect();
- const db= client.db('Job_Hunt');
-    const jobCollections = db.collection('job_data');
+    const db = client.db("Job_Hunt");
+    const jobCollections = db.collection("job_data");
+
+    app.get("/jobs", async (req, res) => {
+      const search = req.query.search || "";
+      const location = req.query.location|| "";
+      const page = parseInt(req.query.page) || 1;
+      const limit = 9;
+      const query = {}
+      if(search){
+        query.$or=[
+            {title:{$regex:search, $options: 'i'}},
+            {company:{$regex:search, $options: 'i'}},
+        ]
+      }
+
+      if(location){
+        query.location={
+            $regex:location,
+            $options:'i'
+        }
+      }
+      const skip = (page - 1) * limit;
+      const result = await jobCollections
+        .find(query)
+        .skip(skip)
+        .limit(limit)
+        .toArray();
+      const total = await jobCollections.countDocuments(query);
+      res.json({
+        data: result,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      });
+    });
 
     await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!",
+    );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
@@ -42,36 +71,10 @@ async function run() {
 }
 run().catch(console.dir);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
+app.get("/", (req, res) => {
+  res.send("Hello World!");
+});
 
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
+  console.log(`Example app listening on port ${port}`);
+});
