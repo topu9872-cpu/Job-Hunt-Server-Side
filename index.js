@@ -26,25 +26,26 @@ async function run() {
     await client.connect();
     const db = client.db("Job_Hunt");
     const jobCollections = db.collection("job_data");
+    const companiesCollections = db.collection("companies_data");
 
     app.get("/jobs", async (req, res) => {
       const search = req.query.search || "";
-      const location = req.query.location|| "";
+      const location = req.query.location || "";
       const page = parseInt(req.query.page) || 1;
       const limit = 9;
-      const query = {}
-      if(search){
-        query.$or=[
-            {title:{$regex:search, $options: 'i'}},
-            {company:{$regex:search, $options: 'i'}},
-        ]
+      const query = {};
+      if (search) {
+        query.$or = [
+          { title: { $regex: search, $options: "i" } },
+          { company: { $regex: search, $options: "i" } },
+        ];
       }
 
-      if(location){
-        query.location={
-            $regex:location,
-            $options:'i'
-        }
+      if (location.trim()) {
+        query.location = {
+          $regex: location,
+          $options: "i",
+        };
       }
       const skip = (page - 1) * limit;
       const result = await jobCollections
@@ -58,6 +59,22 @@ async function run() {
         totalPages: Math.ceil(total / limit),
         currentPage: page,
       });
+    });
+
+    // companies data
+    app.get("/companies", async (req, res) => {
+    
+
+      const search = req.query.search || "";
+      const query =
+      search && search.trim() !== ""
+        ? {
+            name: { $regex: search, $options: "i" },
+          }
+        : {};
+
+      const result = await companiesCollections.find(query).toArray();
+      res.json(result);
     });
 
     await client.db("admin").command({ ping: 1 });
