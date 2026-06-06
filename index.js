@@ -4,7 +4,7 @@ const app = express();
 
 const cors = require("cors");
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 app.use(cors());
 app.use(express());
@@ -61,17 +61,21 @@ async function run() {
       });
     });
 
+    app.get("/jobs/:id", async (req, res) => {
+      const { id } = req.params;
+      const result = await jobCollections.findOne({ _id: new ObjectId(id) });
+      res.json(result);
+    });
+
     // companies data
     app.get("/companies", async (req, res) => {
-    
-
       const search = req.query.search || "";
       const query =
-      search && search.trim() !== ""
-        ? {
-            name: { $regex: search, $options: "i" },
-          }
-        : {};
+        search && search.trim() !== ""
+          ? {
+              name: { $regex: search, $options: "i" },
+            }
+          : {};
 
       const result = await companiesCollections.find(query).toArray();
       res.json(result);
