@@ -7,8 +7,7 @@ const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 app.use(cors());
-app.use(express());
-
+app.use(express.json());
 const port = 5000;
 
 const uri = process.env.MONGODB_URI;
@@ -79,6 +78,13 @@ async function run() {
 
       const result = await companiesCollections.find(query).toArray();
       res.json(result);
+    });
+
+    app.post("/companies", async (req, res) => {
+      const post = req.body;
+      const result = await companiesCollections.insertOne(post);
+      res.json(result);
+      console.log(result)
     });
 
     await client.db("admin").command({ ping: 1 });
