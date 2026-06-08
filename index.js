@@ -66,11 +66,16 @@ async function run() {
       res.json(result);
     });
 
-    app.post('/jobs', async(req, res)=>{
-      const post=req.body;
-      const result=await jobCollections.insertOne(post);
+    app.post("/jobs", async (req, res) => {
+      const post = req.body;
+      const result = await jobCollections.insertOne(post);
       res.json(result);
-    })
+    });
+
+    app.get("/dashboardjobs", async (req, res) => {
+      const result = await jobCollections.find().toArray();
+      res.json(result);
+    });
 
     // companies data
     app.get("/companies", async (req, res) => {
@@ -90,7 +95,7 @@ async function run() {
       const post = req.body;
       const result = await companiesCollections.insertOne(post);
       res.json(result);
-      console.log(result)
+      console.log(result);
     });
 
     await client.db("admin").command({ ping: 1 });
