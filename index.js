@@ -66,6 +66,12 @@ async function run() {
       res.json(result);
     });
 
+    app.post('/jobs', async(req, res)=>{
+      const post=req.body;
+      const result=await jobCollections.insertOne(post);
+      res.json(result);
+    })
+
     // companies data
     app.get("/companies", async (req, res) => {
       const search = req.query.search || "";
