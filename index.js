@@ -26,6 +26,7 @@ async function run() {
     const db = client.db("Job_Hunt");
     const jobCollections = db.collection("job_data");
     const companiesCollections = db.collection("companies_data");
+    const applyUserCollections = db.collection("apply_user");
 
     app.get("/jobs", async (req, res) => {
       const search = req.query.search || "";
@@ -95,7 +96,14 @@ async function run() {
       const post = req.body;
       const result = await companiesCollections.insertOne(post);
       res.json(result);
-      console.log(result);
+    });
+
+    // apply user
+
+    app.post("/applyuser", async (req, res) => {
+      const post = req.body;
+      const result = await applyUserCollections.insertOne(post);
+      res.json(result);
     });
 
     await client.db("admin").command({ ping: 1 });
