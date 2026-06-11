@@ -26,7 +26,7 @@ async function run() {
     const db = client.db("Job_Hunt");
     const dbusers = client.db("job_hunt_users");
 
-    const usersCollections = dbusers.collection("job_data");
+    const usersCollections = dbusers.collection("user");
     const jobCollections = db.collection("job_data");
     const companiesCollections = db.collection("companies_data");
     const applyUserCollections = db.collection("apply_user");
@@ -130,14 +130,14 @@ async function run() {
     app.get("/plans", async (req, res) => {
       const query = {};
       if (req.query.plan_id) {
-        query.id = req.query.plan_id;
+        query.plan_id = req.query.plan_id;
       }
-
+console.log(query)
       const result = await plansCollections.findOne(query);
-      
+      console.log(result)
       res.json(result);
     });
-
+ 
    
     app.post("/subcriptions", async (req, res) => {
       const data = req.body;
@@ -147,7 +147,7 @@ async function run() {
       };
       const result = await subscriptionsCollections.insertOne(subsInfo);
      
-      console.log(req.body)
+
       // update the user plan information
       const filter={email:data.email}
 
@@ -156,7 +156,8 @@ async function run() {
               plan:data.planId,
             }
            }
-           const updateResult=await usersCollections.updateOne(filter, result)
+           const updateResult=await usersCollections.updateOne(filter,updateDocument)
+       
       res.json(result);
     });
 
