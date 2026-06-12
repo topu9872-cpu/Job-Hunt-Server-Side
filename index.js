@@ -97,6 +97,34 @@ async function run() {
       res.json(result);
     });
 
+   app.patch("/companies/:id", async (req, res) => {
+  const { id } = req.params;
+  const updatedCompany = req.body;
+
+  const filter = { _id: new ObjectId(id) };
+
+  const updateDoc = {
+    $set: {
+      status: updatedCompany.status,
+    },
+  };
+
+  const result = await companiesCollections.updateOne(filter, updateDoc);
+  res.json(result);
+});
+
+    app.get("/user-companies", async (req, res) => {
+      const query = {};
+
+      if (req.query.userId) {
+        query.userId = req.query.userId;
+      }
+
+      const cursor = companiesCollections.find(query);
+      const result = await cursor.toArray();
+      res.json(result);
+    });
+
     app.post("/companies", async (req, res) => {
       const post = req.body;
       const result = await companiesCollections.insertOne(post);
@@ -124,21 +152,19 @@ async function run() {
       res.json(result);
     });
 
-   
-
     // plans
     app.get("/plans", async (req, res) => {
-      const query = {};
-      if (req.query.plan_id) {
-        query.plan_id = req.query.plan_id;
+      const { plan_id } = req.query;
+
+      if (!plan_id) {
+        return res.status(400).json({ error: "plan_id is required" });
       }
-console.log(query)
-      const result = await plansCollections.findOne(query);
-      console.log(result)
+
+      const result = await plansCollections.findOne({ plan_id });
+
       res.json(result);
     });
- 
-   
+
     app.post("/subcriptions", async (req, res) => {
       const data = req.body;
       const subsInfo = {
@@ -146,18 +172,20 @@ console.log(query)
         createdAd: new Date(),
       };
       const result = await subscriptionsCollections.insertOne(subsInfo);
-     
 
       // update the user plan information
-      const filter={email:data.email}
+      const filter = { email: data.email };
 
-           const updateDocument={
-            $set:{
-              plan:data.planId,
-            }
-           }
-           const updateResult=await usersCollections.updateOne(filter,updateDocument)
-       
+      const updateDocument = {
+        $set: {
+          plan: data.planId,
+        },
+      };
+      const updateResult = await usersCollections.updateOne(
+        filter,
+        updateDocument,
+      );
+
       res.json(result);
     });
 
