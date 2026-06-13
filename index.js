@@ -24,14 +24,44 @@ async function run() {
   try {
     await client.connect();
     const db = client.db("Job_Hunt");
-    const dbusers = client.db("job_hunt_users");
-
-    const usersCollections = dbusers.collection("user");
+    const usersCollections = db.collection("user");
+    const usersSessionCollections = db.collection("session");
     const jobCollections = db.collection("job_data");
     const companiesCollections = db.collection("companies_data");
     const applyUserCollections = db.collection("apply_user");
     const plansCollections = db.collection("plans");
     const subscriptionsCollections = db.collection("subscriptions");
+
+    const varifyToken = async (req, res, next) => {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ message: "unauthorized access" });
+      }
+      const token = authHeader.split(" ")[1];
+
+      if (!token) {
+        return res.status(401).json({ message: "unauthorized access" });
+      }
+
+      const query = { token };
+
+      const session = await usersSessionCollections.findOne(query);
+
+      const userId = session.userId;
+      const userQuery = {
+        _id: userId,
+      };
+      const user = await usersSessionCollections.findOne(userQuery);
+      req.user = user;
+      next();
+    };
+
+    const varifySeeker = async (req, res, next) => {
+      if (req.user?.role !== "seeker") {
+        return res.starus(403).json({ message: "forbidden access" });
+        next();
+      }
+    };
 
     app.get("/jobs", async (req, res) => {
       const search = req.query.search || "";
@@ -97,21 +127,21 @@ async function run() {
       res.json(result);
     });
 
-   app.patch("/companies/:id", async (req, res) => {
-  const { id } = req.params;
-  const updatedCompany = req.body;
+    app.patch("/companies/:id", varifyToken, async (req, res) => {
+      const { id } = req.params;
+      const updatedCompany = req.body;
 
-  const filter = { _id: new ObjectId(id) };
+      const filter = { _id: new ObjectId(id) };
 
-  const updateDoc = {
-    $set: {
-      status: updatedCompany.status,
-    },
-  };
+      const updateDoc = {
+        $set: {
+          status: updatedCompany.status,
+        },
+      };
 
-  const result = await companiesCollections.updateOne(filter, updateDoc);
-  res.json(result);
-});
+      const result = await companiesCollections.updateOne(filter, updateDoc);
+      res.json(result);
+    });
 
     app.get("/user-companies", async (req, res) => {
       const query = {};
@@ -144,6 +174,7 @@ async function run() {
       if (req.query.userId) {
         query.userId = req.query.userId;
       }
+      console.log("check application id:", req.userId, req.query.userId);
       if (req.query.jobId) {
         query.jobId = req.query.jobId;
       }
