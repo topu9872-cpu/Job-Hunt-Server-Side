@@ -25,6 +25,7 @@ async function run() {
     await client.connect();
     const db = client.db("Job_Hunt");
     const usersCollections = db.collection("user");
+   
     const usersSessionCollections = db.collection("session");
     const jobCollections = db.collection("job_data");
     const companiesCollections = db.collection("companies_data");
@@ -32,8 +33,9 @@ async function run() {
     const plansCollections = db.collection("plans");
     const subscriptionsCollections = db.collection("subscriptions");
 
-    const varifyToken = async (req, res, next) => {
+    const verifyToken = async (req, res, next) => {
       const authHeader = req.headers.authorization;
+
       if (!authHeader) {
         return res.status(401).json({ message: "unauthorized access" });
       }
@@ -46,21 +48,47 @@ async function run() {
       const query = { token };
 
       const session = await usersSessionCollections.findOne(query);
-
+      if (!session) {
+        return res.status(401).json({ message: "invalid session" });
+      }
       const userId = session.userId;
-      const userQuery = {
-        _id: userId,
-      };
-      const user = await usersSessionCollections.findOne(userQuery);
+
+      const user = await usersCollections.findOne({
+        _id: new ObjectId(userId),
+      });
+      if (!user) {
+        return res.status(401).json({ message: "user not found" });
+      }
       req.user = user;
       next();
     };
 
-    const varifySeeker = async (req, res, next) => {
+    // must be used after verifyToken middleware
+    const verifySeeker = async (req, res, next) => {
       if (req.user?.role !== "seeker") {
-        return res.starus(403).json({ message: "forbidden access" });
-        next();
+        return res.status(403).json({ message: "forbidden access" });
       }
+      next();
+    };
+
+    // must be used after verifyToken middleware
+    const veryfyAdmin = async (req, res, next) => {
+      if (req.user.role !== "admin") {
+        return res.status(403).json({
+          message: "forbidden access",
+        });
+      }
+      next();
+    };
+
+    // must be used after verifyToken middleware
+    const veryfyRecruiter = async (req, res, next) => {
+      if (req.user.role !== "recruiter") {
+        return res.status(403).json({
+          message: "forbidden access",
+        });
+      }
+      next();
     };
 
     app.get("/jobs", async (req, res) => {
@@ -102,7 +130,7 @@ async function run() {
       res.json(result);
     });
 
-    app.post("/jobs", async (req, res) => {
+    app.post("/jobs", verifyToken, veryfyRecruiter, async (req, res) => {
       const post = req.body;
       const result = await jobCollections.insertOne(post);
       res.json(result);
@@ -127,7 +155,7 @@ async function run() {
       res.json(result);
     });
 
-    app.patch("/companies/:id", varifyToken, async (req, res) => {
+    app.patch("/companies/:id", verifyToken, veryfyAdmin, async (req, res) => {
       const { id } = req.params;
       const updatedCompany = req.body;
 
@@ -163,23 +191,27 @@ async function run() {
 
     // apply user
 
-    app.post("/applyuser", async (req, res) => {
+    app.post("/applyuser", verifyToken, verifySeeker, async (req, res) => {
       const post = req.body;
       const result = await applyUserCollections.insertOne(post);
       res.json(result);
     });
 
-    app.get("/applyuser", async (req, res) => {
+    app.get("/applyuser", verifyToken, verifySeeker, async (req, res) => {
       const query = {};
       if (req.query.userId) {
         query.userId = req.query.userId;
       }
-      console.log("check application id:", req.userId, req.query.userId);
+
+      if (req.query.userId && req.user._id.toString() !== req.query.userId) {
+        return res.status(403).json({ message: "forbidden access" });
+      }
       if (req.query.jobId) {
         query.jobId = req.query.jobId;
       }
       const cursor = applyUserCollections.find(query);
       const result = await cursor.toArray();
+
       res.json(result);
     });
 
@@ -200,7 +232,7 @@ async function run() {
       const data = req.body;
       const subsInfo = {
         ...data,
-        createdAd: new Date(),
+        createdAt: new Date(),
       };
       const result = await subscriptionsCollections.insertOne(subsInfo);
 
