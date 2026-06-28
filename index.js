@@ -8,7 +8,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 app.use(cors());
 app.use(express.json());
-const port =process.env.PORT;
+const port = 5000 || process.env.PORT;
 
 const uri = process.env.MONGODB_URI;
 
@@ -22,10 +22,10 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    // await client.connect();
+    await client.connect();
     const db = client.db("Job_Hunt");
     const usersCollections = db.collection("user");
-   
+
     const usersSessionCollections = db.collection("session");
     const jobCollections = db.collection("job_data");
     const companiesCollections = db.collection("companies_data");
@@ -238,7 +238,6 @@ async function run() {
 
       // update the user plan information
       const filter = { email: data.email };
-
       const updateDocument = {
         $set: {
           plan: data.planId,
@@ -252,13 +251,74 @@ async function run() {
       res.json(result);
     });
 
-    // await client.db("admin").command({ ping: 1 });
+    // get users
+    app.get("/users", verifyToken, veryfyAdmin, async (req, res) => {
+      const result = await usersCollections.find().toArray();
+      res.json(result);
+    });
+    app.post("/users/:id", verifyToken, veryfyAdmin, async (req, res) => {
+      const { id } = req.params;
+      const role = req.body.role;
+
+      const result = await usersCollections.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: { role },
+        },
+      );
+      res.json(result);
+    });
+
+    app.get("/applications", async (req, res) => {
+      const result = await applyUserCollections.find().toArray();
+      res.json(result);
+    });
+
+    app.get("/all-jobs", async (req, res) => {
+      const result = await jobCollections.find().toArray();
+      res.json(result);
+    });
+
+    app.get("/subscriptions", verifyToken, veryfyAdmin, async (req, res) => {
+      const result = await subscriptionsCollections.find().toArray();
+      res.json(result);
+    });
+
+    // get retuiter`s company job applications
+
+    app.get("/applications/:id", async (req, res) => {
+      const { id } = req.params;
+
+      const result = await applyUserCollections
+        .find({ jobCreaterId: id })
+        .toArray();
+      res.json(result);
+    });
+
+    // update applications status
+    app.patch("/applications/:id", async (req, res) => {
+      const { id } = req.params;
+      const { status } = req.body;
+      const result = await applyUserCollections.updateOne(
+        {
+          _id: new ObjectId(id),
+        },
+        {
+          $set: {
+            status,
+          },
+        },
+      );
+    
+      res.json(result);
+    });
+
+    await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
   } finally {
     // Ensures that the client will close when you finish/error
-    // await client.close();
   }
 }
 run().catch(console.dir);
