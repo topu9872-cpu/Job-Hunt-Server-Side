@@ -288,7 +288,6 @@ async function run() {
 
     app.get("/applications/:id", async (req, res) => {
       const { id } = req.params;
-
       const result = await applyUserCollections
         .find({ jobCreaterId: id })
         .toArray();
@@ -309,7 +308,36 @@ async function run() {
           },
         },
       );
-    
+
+      res.json(result);
+    });
+
+    // rectuiter total jobs
+
+    app.get("/all-jobs/:id", async (req, res) => {
+      const { id } = req.params;
+
+      const result = await jobCollections.find({ userId: id }).toArray();
+
+      res.json(result);
+    });
+
+    app.delete("/all-jobs/:id", async (req, res) => {
+      const { id } = req.params;
+
+      const result = await jobCollections.deleteOne({ _id: new ObjectId(id) });
+
+      res.json(result);
+    });
+
+    app.patch("/all-jobs/:id", async (req, res) => {
+      const { id } = req.params;
+      const body = req.body;
+
+      const result = await jobCollections.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: body },
+      );
       res.json(result);
     });
 
